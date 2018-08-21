@@ -1,3 +1,4 @@
+
 /*
     TechCheck -- Simple inventory management tool using a barcode reader to check in and out devices.
     Copyright (C) 2018  MD Showman
@@ -70,7 +71,7 @@ public class TC_GUI extends JFrame {
 					fis = new FileInputStream("./inventory.xlsx");
 					new WorkbookFactory();
 					wb = WorkbookFactory.create(fis);
-					sh = wb.getSheet("Sheet1");
+					sh = wb.getSheet("Inventory");
 
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -93,6 +94,7 @@ public class TC_GUI extends JFrame {
 
 		setLocationRelativeTo(null);
 
+		// Barcode Panel
 		JPanel scanPanel = new JPanel();
 		contentPane.add(scanPanel, BorderLayout.NORTH);
 
@@ -107,10 +109,10 @@ public class TC_GUI extends JFrame {
 		btnFind.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 
+				// Get index for asset
 				int foundAsset = getAsset(txtBarcode.getText());
 
-				// System.out.println(foundAsset);
-
+				// If found, populate fields
 				if (foundAsset != 0) {
 					// System.out.println("adding values");
 					txtID.setText(String.valueOf((int) sh.getRow(foundAsset).getCell(0).getNumericCellValue()));
@@ -118,6 +120,7 @@ public class TC_GUI extends JFrame {
 					txtBorrowedBy.setText(sh.getRow(foundAsset).getCell(2).toString());
 					txtDate.setText(sh.getRow(foundAsset).getCell(3).toString());
 
+					// Logic to display CheckOut or CheckIn button
 					if (txtBorrowedBy.getText().equalsIgnoreCase("Available")) {
 						btnCheckOut.setVisible(true);
 						btnCancel.setVisible(true);
@@ -128,16 +131,20 @@ public class TC_GUI extends JFrame {
 					txtBarcode.setEnabled(false);
 					btnFind.setEnabled(false);
 				}
+
+				// Reset Barcode panel
 				txtBarcode.setText("");
 				txtBarcode.requestFocus();
 			}
 		});
 		scanPanel.add(btnFind);
 
+		// Main Panel
 		JPanel panel_1 = new JPanel();
 		contentPane.add(panel_1, BorderLayout.CENTER);
 		panel_1.setLayout(new GridLayout(0, 1, 0, 0));
 
+		// ID Panel
 		JPanel idPanel = new JPanel();
 		panel_1.add(idPanel);
 		idPanel.setLayout(new GridLayout(0, 2, 0, 0));
@@ -151,6 +158,7 @@ public class TC_GUI extends JFrame {
 		idPanel.add(txtID);
 		txtID.setColumns(10);
 
+		// Type Panel
 		JPanel typePanel = new JPanel();
 		panel_1.add(typePanel);
 		typePanel.setLayout(new GridLayout(0, 2, 0, 0));
@@ -164,6 +172,7 @@ public class TC_GUI extends JFrame {
 		typePanel.add(txtType);
 		txtType.setColumns(10);
 
+		// BorrowedBy Panel
 		JPanel byPanel = new JPanel();
 		panel_1.add(byPanel);
 		byPanel.setLayout(new GridLayout(0, 2, 0, 0));
@@ -177,6 +186,7 @@ public class TC_GUI extends JFrame {
 		byPanel.add(txtBorrowedBy);
 		txtBorrowedBy.setColumns(10);
 
+		// Date Panel
 		JPanel datePanel = new JPanel();
 		panel_1.add(datePanel);
 		datePanel.setLayout(new GridLayout(0, 2, 0, 0));
@@ -190,12 +200,15 @@ public class TC_GUI extends JFrame {
 		datePanel.add(txtDate);
 		txtDate.setColumns(10);
 
+		// Buttons panel
 		JPanel checkPanel = new JPanel();
 		contentPane.add(checkPanel, BorderLayout.SOUTH);
 
 		btnCheckOut = new JButton("Check Out");
 		btnCheckOut.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				// Show CheckOut button, populate date field, enable BorrowedBy textfield and
+				// gives focus
 				btnCheckOut.setVisible(false);
 				btnSubmit.setVisible(true);
 				String date = new SimpleDateFormat("MM/dd/yyyy").format(new Date());
@@ -211,6 +224,8 @@ public class TC_GUI extends JFrame {
 		btnSubmit = new JButton("Submit");
 		btnSubmit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				// Checks for blank field, if isn't -- write to file, if is -- display warning
+				// and set focus to BorrowedBy textfield
 				if (!txtBorrowedBy.getText().equals("")) {
 					int asset = getAsset(txtID.getText());
 
@@ -237,6 +252,8 @@ public class TC_GUI extends JFrame {
 
 			public void actionPerformed(ActionEvent e) {
 
+				// Confirms that user is checking in device, if yes -- write fields, if no --
+				// sets elements back to default
 				int confirm = JOptionPane.showConfirmDialog(null, "Check in this device?", "Please confirm",
 						JOptionPane.YES_NO_OPTION);
 
@@ -252,8 +269,7 @@ public class TC_GUI extends JFrame {
 							JOptionPane.OK_OPTION);
 
 				} else {
-					JOptionPane.showMessageDialog(null, "Check in cancelled.", "Checked In",
-							JOptionPane.OK_OPTION);
+					JOptionPane.showMessageDialog(null, "Check in cancelled.", "Checked In", JOptionPane.OK_OPTION);
 				}
 
 				resetFields();
@@ -266,16 +282,19 @@ public class TC_GUI extends JFrame {
 		btnCancel = new JButton("Cancel");
 		btnCancel.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				// Sets elements to default
 				resetFields();
 			}
 		});
 		btnCancel.setVisible(false);
 		checkPanel.add(btnCancel);
 
+		// Added this just for the visual, thought it looked nice this way
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		contentPane.add(tabbedPane, BorderLayout.WEST);
 	}
 
+	// Method to get index of asset, returns 0 if not found
 	public int getAsset(String id) {
 		for (int i = 1; i <= sh.getLastRowNum(); i++) {
 			int temp = (int) sh.getRow(i).getCell(0).getNumericCellValue();
@@ -289,6 +308,7 @@ public class TC_GUI extends JFrame {
 		return 0;
 	}
 
+	// Method to reset elements to default
 	public void resetFields() {
 		btnCheckIn.setVisible(false);
 		btnCheckOut.setVisible(false);
@@ -304,6 +324,7 @@ public class TC_GUI extends JFrame {
 		txtType.setText("");
 	}
 
+	// Method to write to file
 	public void saveAsset() {
 		try {
 			fos = new FileOutputStream("./inventory.xlsx");
