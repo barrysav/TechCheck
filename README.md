@@ -1,6 +1,8 @@
 # TechCheck
 Simple inventory management tool using a barcode reader to check in and out devices.
 
+***Requires Java 9+***
+
 ***Includes Apache POI***
 http://poi.apache.org/download.html
 
