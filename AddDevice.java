@@ -93,8 +93,7 @@ public class AddDevice extends JDialog {
 		deviceTypePanel.add(lblDeviceType);
 
 		comboBox = new JComboBox<String>();
-		comboBox.setModel(new DefaultComboBoxModel<String>(new String[] { "13\" Chromebook", "15\" Chromebook",
-				"iPad 2", "iPad Mini", "Windows Laptop", "Macbook Pro" }));
+		comboBox.setModel(new DefaultComboBoxModel(new String[] {"HP Chromebook", "Lenovo Chromebook", "iPad Mini", "Windows Laptop"}));
 		comboBox.setSelectedIndex(-1);
 		comboBox.setPreferredSize(new Dimension(350, 20));
 		deviceTypePanel.add(comboBox);
