@@ -24,9 +24,13 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.EncryptedDocumentException;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -41,6 +45,13 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.awt.event.ActionEvent;
 import javax.swing.JTabbedPane;
+import javax.swing.border.LineBorder;
+import java.awt.Color;
+import javax.swing.SwingConstants;
+import java.awt.event.WindowFocusListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 public class TC_GUI extends JFrame {
 	// GUI
@@ -50,11 +61,11 @@ public class TC_GUI extends JFrame {
 	private JTextField txtID;
 	private JTextField txtType;
 	private JTextField txtDate;
-	private JButton btnFind, btnCheckOut, btnCheckIn, btnCancel, btnSubmit;
+	private JButton btnFind, btnCheckOut, btnCheckIn, btnCancel, btnSubmit, btnAddNewDevice;
 
 	// non-GUI
-	private static Workbook wb;
-	private static Sheet sh;
+	private static XSSFWorkbook wb;
+	private static XSSFSheet sh;
 	private static FileInputStream fis;
 	private static FileOutputStream fos;
 
@@ -68,10 +79,8 @@ public class TC_GUI extends JFrame {
 					TC_GUI frame = new TC_GUI();
 					frame.setVisible(true);
 
-					fis = new FileInputStream("./inventory.xlsx");
-					new WorkbookFactory();
-					wb = WorkbookFactory.create(fis);
-					sh = wb.getSheet("Inventory");
+					// call method to set up workbook
+					connectWorkbook();
 
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -84,6 +93,29 @@ public class TC_GUI extends JFrame {
 	 * Create the frame.
 	 */
 	public TC_GUI() {
+		// puts cursor in txtBarcode textfield
+		addWindowFocusListener(new WindowFocusListener() {
+			public void windowGainedFocus(WindowEvent e) {
+				txtBarcode.requestFocus();
+				try {
+					// call method to set up workbook (refresh)
+					connectWorkbook();
+				} catch (EncryptedDocumentException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} catch (InvalidFormatException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+
+			public void windowLostFocus(WindowEvent e) {
+			}
+		});
+		setTitle("TechCheck");
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
@@ -96,57 +128,65 @@ public class TC_GUI extends JFrame {
 
 		// Barcode Panel
 		JPanel scanPanel = new JPanel();
+		scanPanel.setBorder(new LineBorder(Color.LIGHT_GRAY, 1, true));
 		contentPane.add(scanPanel, BorderLayout.NORTH);
+		scanPanel.setLayout(new GridLayout(2, 2, 0, 0));
 
 		JLabel lblBarcode = new JLabel("Barcode:");
+		lblBarcode.setHorizontalAlignment(SwingConstants.CENTER);
 		scanPanel.add(lblBarcode);
 
 		txtBarcode = new JTextField();
+		txtBarcode.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent e) {
+				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+					findDevice();
+				}
+			}
+		});
 		scanPanel.add(txtBarcode);
 		txtBarcode.setColumns(10);
+
+		btnAddNewDevice = new JButton("Add New Device");
+		btnAddNewDevice.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					wb.close();
+					AddDevice addDialog = new AddDevice();
+					addDialog.requestFocus();
+					addDialog.setVisible(true);
+				} catch (EncryptedDocumentException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} catch (InvalidFormatException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+
+			}
+		});
+		scanPanel.add(btnAddNewDevice);
 
 		btnFind = new JButton("Search Inventory");
 		btnFind.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-
-				// Get index for asset
-				int foundAsset = getAsset(txtBarcode.getText());
-
-				// If found, populate fields
-				if (foundAsset != 0) {
-					// System.out.println("adding values");
-					txtID.setText(String.valueOf((int) sh.getRow(foundAsset).getCell(0).getNumericCellValue()));
-					txtType.setText(sh.getRow(foundAsset).getCell(1).toString());
-					txtBorrowedBy.setText(sh.getRow(foundAsset).getCell(2).toString());
-					txtDate.setText(sh.getRow(foundAsset).getCell(3).toString());
-
-					// Logic to display CheckOut or CheckIn button
-					if (txtBorrowedBy.getText().equalsIgnoreCase("Available")) {
-						btnCheckOut.setVisible(true);
-						btnCancel.setVisible(true);
-					} else {
-						btnCheckIn.setVisible(true);
-						btnCancel.setVisible(true);
-					}
-					txtBarcode.setEnabled(false);
-					btnFind.setEnabled(false);
-				}
-
-				// Reset Barcode panel
-				txtBarcode.setText("");
-				txtBarcode.requestFocus();
+				findDevice();
 			}
 		});
 		scanPanel.add(btnFind);
 
 		// Main Panel
-		JPanel panel_1 = new JPanel();
-		contentPane.add(panel_1, BorderLayout.CENTER);
-		panel_1.setLayout(new GridLayout(0, 1, 0, 0));
+		JPanel infoPanel = new JPanel();
+		contentPane.add(infoPanel, BorderLayout.CENTER);
+		infoPanel.setLayout(new GridLayout(0, 1, 0, 0));
 
 		// ID Panel
 		JPanel idPanel = new JPanel();
-		panel_1.add(idPanel);
+		infoPanel.add(idPanel);
 		idPanel.setLayout(new GridLayout(0, 2, 0, 0));
 
 		JLabel lblAssetIdNumber = new JLabel("Asset ID Number:");
@@ -160,7 +200,7 @@ public class TC_GUI extends JFrame {
 
 		// Type Panel
 		JPanel typePanel = new JPanel();
-		panel_1.add(typePanel);
+		infoPanel.add(typePanel);
 		typePanel.setLayout(new GridLayout(0, 2, 0, 0));
 
 		JLabel lblType = new JLabel("Type:");
@@ -174,13 +214,21 @@ public class TC_GUI extends JFrame {
 
 		// BorrowedBy Panel
 		JPanel byPanel = new JPanel();
-		panel_1.add(byPanel);
+		infoPanel.add(byPanel);
 		byPanel.setLayout(new GridLayout(0, 2, 0, 0));
 
 		JLabel lblBorrowedBy = new JLabel("Borrowed By:");
 		byPanel.add(lblBorrowedBy);
 
 		txtBorrowedBy = new JTextField();
+		txtBorrowedBy.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent e) {
+				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+					submitCheckout();
+				}
+			}
+		});
 		txtBorrowedBy.setEnabled(false);
 		txtBorrowedBy.setEditable(false);
 		byPanel.add(txtBorrowedBy);
@@ -188,7 +236,7 @@ public class TC_GUI extends JFrame {
 
 		// Date Panel
 		JPanel datePanel = new JPanel();
-		panel_1.add(datePanel);
+		infoPanel.add(datePanel);
 		datePanel.setLayout(new GridLayout(0, 2, 0, 0));
 
 		JLabel lblDateBorrowed = new JLabel("Date Borrowed:");
@@ -224,23 +272,7 @@ public class TC_GUI extends JFrame {
 		btnSubmit = new JButton("Submit");
 		btnSubmit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				// Checks for blank field, if isn't -- write to file, if is -- display warning
-				// and set focus to BorrowedBy textfield
-				if (!txtBorrowedBy.getText().equals("")) {
-					int asset = getAsset(txtID.getText());
-
-					sh.getRow(asset).getCell(2).setCellValue(txtBorrowedBy.getText());
-					sh.getRow(asset).getCell(3).setCellValue(txtDate.getText());
-
-					saveAsset();
-					JOptionPane.showMessageDialog(null, "Device checked out successfully.", "Checked Out",
-							JOptionPane.OK_OPTION);
-					resetFields();
-				} else {
-					JOptionPane.showMessageDialog(null, "You need to enter the borrower's name.", "Checked Out",
-							JOptionPane.OK_OPTION);
-					txtBorrowedBy.requestFocus();
-				}
+				submitCheckout();
 			}
 		});
 		btnSubmit.setVisible(false);
@@ -264,7 +296,15 @@ public class TC_GUI extends JFrame {
 					sh.getRow(asset).getCell(2).setCellValue("Available");
 					sh.getRow(asset).getCell(3).setCellValue("-");
 
-					saveAsset();
+					try {
+						saveAsset();
+					} catch (EncryptedDocumentException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					} catch (InvalidFormatException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 					JOptionPane.showMessageDialog(null, "Device checked in successfully.", "Checked In",
 							JOptionPane.OK_OPTION);
 
@@ -299,8 +339,6 @@ public class TC_GUI extends JFrame {
 		for (int i = 1; i <= sh.getLastRowNum(); i++) {
 			int temp = (int) sh.getRow(i).getCell(0).getNumericCellValue();
 
-			// System.out.println(temp);
-
 			if (String.valueOf(temp).equals(id))
 				return i;
 		}
@@ -316,6 +354,7 @@ public class TC_GUI extends JFrame {
 		btnSubmit.setVisible(false);
 		txtBarcode.setEnabled(true);
 		btnFind.setEnabled(true);
+		btnAddNewDevice.setEnabled(true);
 		txtBarcode.requestFocus();
 		txtBorrowedBy.setText("");
 		txtBorrowedBy.setEnabled(false);
@@ -325,15 +364,18 @@ public class TC_GUI extends JFrame {
 	}
 
 	// Method to write to file
-	public void saveAsset() {
+	public void saveAsset() throws EncryptedDocumentException, InvalidFormatException {
 		try {
+			fis.close();
 			fos = new FileOutputStream("./inventory.xlsx");
 
 			wb.write(fos);
 			fos.flush();
 			fos.close();
+			wb.close();
 
 			resetFields();
+			connectWorkbook();
 
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
@@ -341,4 +383,75 @@ public class TC_GUI extends JFrame {
 		}
 	}
 
+	public static void connectWorkbook() throws EncryptedDocumentException, InvalidFormatException, IOException {
+		fis = new FileInputStream("./inventory.xlsx");
+		new WorkbookFactory();
+		wb = (XSSFWorkbook) WorkbookFactory.create(fis);
+
+		DataFormat fmt = wb.createDataFormat();
+		CellStyle textStyle = wb.createCellStyle();
+		textStyle.setDataFormat(fmt.getFormat("@"));
+
+		sh = wb.getSheet("Inventory");
+		sh.setDefaultColumnStyle(0, textStyle);
+	}
+
+	public void findDevice() {
+		// Get index for asset
+		int foundAsset = getAsset(txtBarcode.getText());
+
+		// If found, populate fields
+		if (foundAsset != 0) {
+			// System.out.println("adding values");
+			txtID.setText(String.valueOf((int) sh.getRow(foundAsset).getCell(0).getNumericCellValue()));
+			txtType.setText(sh.getRow(foundAsset).getCell(1).toString());
+			txtBorrowedBy.setText(sh.getRow(foundAsset).getCell(2).toString());
+			txtDate.setText(sh.getRow(foundAsset).getCell(3).toString());
+
+			// Logic to display CheckOut or CheckIn button
+			if (txtBorrowedBy.getText().equalsIgnoreCase("Available")) {
+				btnCheckOut.setVisible(true);
+				btnCancel.setVisible(true);
+			} else {
+				btnCheckIn.setVisible(true);
+				btnCancel.setVisible(true);
+			}
+			txtBarcode.setEnabled(false);
+			btnFind.setEnabled(false);
+			btnAddNewDevice.setEnabled(false);
+		}
+
+		// Reset Barcode panel
+		txtBarcode.setText("");
+		txtBarcode.requestFocus();
+	}
+
+	public void submitCheckout() {
+		// Checks for blank field, if isn't -- write to file, if is -- display warning
+		// and set focus to BorrowedBy textfield
+		if (!txtBorrowedBy.getText().equals("")) {
+			int asset = getAsset(txtID.getText());
+
+			sh.getRow(asset).getCell(2).setCellValue(txtBorrowedBy.getText());
+			sh.getRow(asset).getCell(3).setCellValue(txtDate.getText());
+
+			try {
+				saveAsset();
+			} catch (EncryptedDocumentException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} catch (InvalidFormatException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			JOptionPane.showMessageDialog(null, "Device checked out successfully.", "Checked Out",
+					JOptionPane.OK_OPTION);
+			resetFields();
+		} else {
+			JOptionPane.showMessageDialog(null, "You need to enter the borrower's name.", "Checked Out",
+					JOptionPane.OK_OPTION);
+			txtBorrowedBy.requestFocus();
+		}
+
+	}
 }
