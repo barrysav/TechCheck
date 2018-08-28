@@ -26,9 +26,12 @@ import javax.swing.border.EmptyBorder;
 
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -337,9 +340,17 @@ public class TC_GUI extends JFrame {
 	// Method to get index of asset, returns 0 if not found
 	public int getAsset(String id) {
 		for (int i = 1; i <= sh.getLastRowNum(); i++) {
-			int temp = (int) sh.getRow(i).getCell(0).getNumericCellValue();
 
-			if (String.valueOf(temp).equals(id))
+			String temp;
+
+			if (sh.getRow(i).getCell(0).getCellTypeEnum() == CellType.NUMERIC) {
+				int intTemp = (int) sh.getRow(i).getCell(0).getNumericCellValue();
+				temp = intTemp + "";
+			} else {
+				temp = sh.getRow(i).getCell(0).getStringCellValue();
+			}
+
+			if (temp.equals(id))
 				return i;
 		}
 
@@ -403,7 +414,16 @@ public class TC_GUI extends JFrame {
 		// If found, populate fields
 		if (foundAsset != 0) {
 			// System.out.println("adding values");
-			txtID.setText(String.valueOf((int) sh.getRow(foundAsset).getCell(0).getNumericCellValue()));
+			String temp;
+
+			if (sh.getRow(foundAsset).getCell(0).getCellTypeEnum() == CellType.NUMERIC) {
+				int intTemp = (int) sh.getRow(foundAsset).getCell(0).getNumericCellValue();
+				temp = intTemp + "";
+			} else {
+				temp = sh.getRow(foundAsset).getCell(0).getStringCellValue();
+			}
+			
+			txtID.setText(temp);
 			txtType.setText(sh.getRow(foundAsset).getCell(1).toString());
 			txtBorrowedBy.setText(sh.getRow(foundAsset).getCell(2).toString());
 			txtDate.setText(sh.getRow(foundAsset).getCell(3).toString());
